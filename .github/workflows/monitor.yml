@@ -1,0 +1,35 @@
+name: ticket-monitor
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # 每5分钟一次
+  workflow_dispatch:          # 支持手动触发
+
+concurrency:
+  group: ticket-monitor
+  cancel-in-progress: false
+
+permissions:
+  contents: write             # 允许回写 last_state.json
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run monitor
+        env:
+          SENDKEY: ${{ secrets.SENDKEY }}
+        run: python monitor.py
+
+      - name: Commit state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add last_state.json
+          git diff --cached --quiet || (git commit -m "update state [skip ci]" && git push)
