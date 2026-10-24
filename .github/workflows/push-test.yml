@@ -1,0 +1,27 @@
+name: push-test
+
+on:
+  workflow_dispatch:   # 仅手动触发
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test ServerChan push
+        env:
+          SENDKEY: ${{ secrets.SENDKEY }}
+        run: |
+          python3 - <<'EOF'
+          import json, os, urllib.request, urllib.parse
+          key = os.environ["SENDKEY"]
+          assert key.startswith("SCT"), "SENDKEY 未配置或格式不对"
+          payload = urllib.parse.urlencode({
+              "title": "☁️ 云端推送测试成功",
+              "desp": "GitHub Actions -> Server酱 -> 微信 全链路正常。\n\n如果看到这条消息，说明放票提醒随时可以送达你。"
+          }).encode()
+          req = urllib.request.Request(f"https://sctapi.ftqq.com/{key}.send", data=payload)
+          body = json.loads(urllib.request.urlopen(req, timeout=30).read())
+          print("Server酱返回:", body)
+          assert body.get("code") == 0, f"推送失败: {body}"
+          print("✅ 推送成功")
+          EOF
